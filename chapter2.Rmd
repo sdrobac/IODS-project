@@ -1,7 +1,126 @@
-# Insert chapter 2 title here
+# Week 2 - Regression and model validation
 
-*Describe the work you have done this week and summarize your learning.*
+This chapter describes the work done this week, the results and it's interpretations.
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using  
+<!-- *Describe the work you have done this week and summarize your learning.* -->
+
+<!-- - Describe your work and results clearly.  -->
+<!-- - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods -->
+<!-- - Assume the reader has no previous knowledge of your data or the more advanced methods you are using   -->
+
+## 1. Brief dataset description 
+The data we are working on was collected during course: Johdatus yhteiskuntatilastotieteeseen, syksy 2014 (Introduction to Social Statistics, fall 2014 - in Finnish), international survey of Approaches to Learning, made possible by Teachers' Academy funding for KV in 2013-2015. Data are used for teaching purposes from 1/2017 on with a course Introduction to Open Data Science.
+
+Data has totaly 166 observations and 7 variables: gender, age, attitude, deep, stra, surf and points.
+```{r}
+testData <- read.table("data/learning2014.txt")
+dim(testData)
+colnames(testData)
+```
+
+## 2. Data overview
+<!-- Show a graphical overview of the data and show summaries of the variables in the data. Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. (0-3 points) -->
+
+Summaries of the data variables:
+
+* __gender__ - Gender: M (Male), F (Female)
+* __age__ - Age (in years) derived from the date of birth
+* __attitude__ - Global attitude toward statistics
+* __deep__ - Average score on questions related to deep learning
+* __stra__ - Average score on questions related to strategic learning 
+* __surf__ - Average score on questions related to surface learning
+* __points__ - Exam points
+
+Graphical represtentaion of the data:
+```{r, chunk-label, results='hide', fig.height=4}
+library(GGally)
+library(ggplot2)
+p <- ggpairs(testData, mapping = aes(col=gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+p
+
+```
+<br/>
+<!-- Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. -->
+Description and interpretation of the outputs:
+
+* Gender
+    + There is twice more female subjects that male subjects.
+* Age
+    + Subjects are mostly between 20 and 30 years old
+    + Male subject's mean _age_ is closer to 25 while female's mean _age_ is closer to 20
+    + Statistical significance between age and _attitude_, _deep_ and _points_ is low. Between _age_ and _stra_ and _surf_ it is higher
+* Global attitude towards statistics  
+    + Mean score is in the middle for female subjects, while male subject's attitude is a bit higher
+    + Statistical significance between _attitude_ and _points_ is the heighest, while is quite low is between _attitude_ and other variables
+* Average score on questions related to deep learning
+    + The mean score is between 3 and 4
+* Average score on questions related to strategic learning
+    + The mean score is between 3 and 4 for females and 3 for male
+* Average score on questions related to surface learning
+    + The mean score is below 3, close to 2 for male and close to 2.5 to female subjects
+* Exam points
+    + Both male and female subjects made between 25 and 30 points on average on the exam, with more male subjects having the higher grade.
+    + Statistical significance is the heighest between _points_ and _attitude_. It is followed by _stra_ and _surf_, while connections of _age_ and _deep_ with _points_ are not statistically signifact.
+
+
+
+
+
+## 3. Regression model
+
+<!-- Choose three variables as explanatory variables and fit a regression model where exam points is the target (dependent) variable. Show a summary of the fitted model and comment and interpret the results. Explain and interpret the statistical test related to the model parameters. If an explanatory variable in your model does not have a statistically significant relationship with the target variable, remove the variable from the model and fit the model again without it. (0-4 points) -->
+
+We are trying to fit a regression model where exam _points_ is the target variable and explanatory variables are the three most significant variables in relation to the target: _attitude_, _stra_ and _surf_ .
+```{r, chunk-label2, fig.height=4}
+my_model <- lm(points ~ attitude + stra + surf, data = testData)
+summary(my_model)
+```
+
+The summary of the model shows us residuals, as well as estimated parameters of the linear function, which gives us regression equation describing the relationship between exam _points_ and _attitude_, _stra_ and _surf_ :<br/>
+
+
+$points = \alpha + \beta_1 \cdot attitude + \beta_2 \cdot stra + \beta_3 \cdot surf$  
+
+and the estimates are:
+
+$\alpha$  = 11.0171 <br/>
+$\beta_1$ = 3.3952 <br/>
+$\beta_2$ = 0.8531 <br/>
+$\beta_3$ = -0.5861 <br/>
+
+Which gives us the regression equation:  
+$points = 11.0171 + 3.3952 \cdot attitude + 0.8531 \cdot stra - 0.5861 \cdot surf$
+
+
+<!-- -------TODO: Show a summary of the fitted model and comment and interpret the results. Explain and interpret the statistical test related to the model parameters. -->
+
+
+## 4. Results interpretation
+<!-- Using a summary of your fitted model, explain the relationship between the chosen explanatory variables and the target variable (interpret the model parameters). Explain and interpret the multiple R squared of the model. (0-3 points) -->
+
+Intercept ($\alpha$) is a _points'_ value when all of the 3 variables are equal to 0. That is the value where linear regression graph crosses the y-axis (the _points_ axis). If _attitude_ chages by one unit, exam _points_ will change by 3.3952 units, given that the other variables do not change. Similarly, the same principle is valid for other variables and their parameters (if _stra_ changes by one unit, _points_ will change by 0.8531 units and if _surf_ changes by one unit, _points_ will change by -0.5861 units, given that other variables don't change).
+
+
+Multiple R-squared of the model is: 0.2074, that is 20.74\%. This measure tells us how close the data are to the fitted regression line. The value being around 20\% indicates that the model explains some of the variability of the response data around its mean.
+
+## 5. Diagnostic plots
+<!-- Produce the following diagnostic plots: Residuals vs Fitted values, Normal QQ-plot and Residuals vs Leverage. Explain the assumptions of the model and interpret the validity of those assumptions based on the diagnostic plots. (0-3 points) -->
+
+```{r}
+par(mfrow = c(2,2))
+plot(my_model, which=c(1,2,5))
+```
+
+__Residuals vs Fitted plot__ shows that residuals don't have a non-linear pattern which means that linear model is good for analysis of our data.
+
+__Normal QQ-plot__ shows us that the residuals were normally distributed, which is also a sign of a good model.
+
+
+__Residuals vs Leverage plot__ helps to find influential outliners. In our plot I don't see any influential outliners. We can't even see Cook's distance lines (a red dashed line) because all cases are well inside of the Cook's distance lines.
+
+These three plots show us that there isn't anything problematic in our model and that it is a good representation of our data.
+
+
+
+
+
