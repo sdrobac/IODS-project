@@ -1,0 +1,245 @@
+# Week 3 - Logistic regression
+
+The dataset that we are using here is joined data set that contains student information, including student alcohol consumption. General information about the data set can be found [here](https://archive.ics.uci.edu/ml/datasets/Student+Performance).The following adjustments have been made:
+
+* The variables not used for joining the two data have been combined by averaging (including the grade variables)
+* 'alc_use' is the average of 'Dalc' and 'Walc'
+* 'high_use' is TRUE if 'alc_use' is higher than 2 and FALSE otherwise
+
+Dataset variables:
+```{r, echo = FALSE}
+alc=read.table("D:/Senka/Work/IODS-project/data/alc.txt",sep=" ",header=TRUE)
+
+```
+
+```{r}
+colnames(alc)
+
+```
+
+<!-- 3 The purpose of your analysis is to study the relationships between high/low alcohol consumption and some of the other variables in the data. To do this, choose 4 interesting variables in the data and for each of them, present your personal hypothesis about their relationships with alcohol consumption. (0-1 point) -->
+## Hypothesis
+The purpose of the analysis is to study the relationships between high/low alcohol consumption and some of the other variables in the data. Here I am choosing 4 variables and my hypothesis about their relationships with alcohol consumption.
+
+1.  __Pstatus__ - parent's cohabitation status (binary: 'T' - living together or 'A' - apart)  <br \>
+    I'm interested to see if children of parents who live together drink less than those of parents living apart. <br \>
+    Hypothesis: Parents living apart &rarr; Higer alchocol consumption 
+
+2.  __famrel__ - quality of family relationships (numeric: from 1 - very bad to 5 - excellent) <br \>
+    Hypothesis: Bad quiality &rarr; Higer alchocol consumption 
+
+3.  __freetime__ - free time after school (numeric: from 1 - very low to 5 - very high) <br \>
+    Hypothesis: More freetime &rarr; Higer alchocol consumption
+
+4.  __goout__ - going out with friends (numeric: from 1 - very low to 5 - very high) <br \>
+    Hypothesis: Going out with friends more often &rarr; Higer alchocol consumption
+
+<!-- #4 -->
+<!-- # ----Numerically and graphically explore the distributions of your chosen variables -->
+## Distributions
+### Distributions of the chosen variables
+First, here are distributions of the chosen variables:
+
+```{r echo=FALSE}
+library(tidyr); library(dplyr); library(ggplot2)
+new_alc<-select(alc, Pstatus, famrel, freetime, goout, high_use)
+# glimpse(new_alc)
+# use gather() to gather columns into key-value pairs and then glimpse() at the resulting data
+# gather(new_alc) %>% glimpse
+```
+```{r echo=FALSE}
+glimpse(new_alc)
+# draw a bar plot of each variable
+gather(new_alc) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar()
+
+```
+
+<!-- # ......and their relationships with alcohol consumption (use for example cross-tabulations, bar plots and box plots). -->
+<!-- # produce summary statistics by group -->
+###Varibales relationships with high alcohol consumption:
+
+Now we'll explore varibales relationships with high alcohol consumption:
+
+1.  Parent's cohabitation status and high alchocol use
+```{r echo=FALSE}
+new_alc %>% group_by(Pstatus, high_use) %>%   summarise (n = n()) %>%   mutate(freq = n / sum(n))
+
+p <- ggplot(data = alc, aes(x = Pstatus, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and Parents cohabitation status")
+p
+
+```
+
+Only 31.6% of students whose parents live apart and 29.7% of those whose parents live together have high alchocol consumption. The differnce between these two groups is not very big, thus my hypothesis was wrong.
+
+2.  Quality of family relationships and high alchocol use
+```{r echo=FALSE}
+new_alc %>% group_by(famrel, high_use) %>%   summarise (n = n()) %>%   mutate(freq = n / sum(n))
+g1 <- ggplot(alc, aes(x = high_use, y = famrel, col = high_use))
+# define the plot as a boxplot and draw it
+g1 + geom_boxplot() + ylab("famrel") + ggtitle("Student family relations by alcohol consumption")
+```
+
+As assumed, students with better family relationships have smaller alchocol consumption.
+
+
+
+3. Free time after school and high alchocol use
+
+```{r echo=FALSE}
+new_alc %>% group_by(freetime, high_use) %>%   summarise (n = n()) %>%   mutate(freq = n / sum(n))
+
+g1 <- ggplot(alc, aes(x = high_use, y = freetime, col = high_use))
+# define the plot as a boxplot and draw it
+g1 + geom_boxplot() + ylab("Free time") + ggtitle("Student's free time and  alcohol consumption")
+
+```
+
+More free time after school desn't mean higher alchocol consumption. My hypothesis was wrong in this case.
+
+4.  Going out with friends and high alchocol use
+```{r echo=FALSE}
+new_alc %>% group_by(goout, high_use) %>%   summarise (n = n()) %>%   mutate(freq = n / sum(n))
+
+ g1 <- ggplot(alc, aes(x = high_use, y = goout, col = high_use))
+# define the plot as a boxplot and draw it
+g1 + geom_boxplot() + ylab("Go out") + ggtitle("Students going out and  alcohol consumption")
+
+```
+
+Students that go out with thier firends a lot, have higher alchocol consumption. This confirms the hypothesis.
+
+
+
+## Logistic regression
+
+#### The model
+
+Now we'll use logistic regression to statistically explore the relationship between the chosen variables and the binary high/low alcohol consumption variable as the target variable.
+
+```{r echo=FALSE}
+# find the model with glm()
+m <- glm(high_use ~ Pstatus + famrel + freetime + goout, data = alc, family = "binomial")
+
+```
+
+Here is the summary of the fitted model:
+
+```{r}
+# print out a summary of the model
+summary(m)
+
+```
+
+The summary shows that Pstatus and freetime don't have statistical relationship with target, which confirms the analysis above. 
+
+
+
+
+#### Coefficients of the model
+Here we present the coefficients of the model as odds ratios and provide confidence intervals for them:
+
+<!-- # Present and interpret the coefficients of the model as odds ratios and provide confidence intervals for them.  -->
+
+```{r echo=FALSE}
+# compute odds ratios (OR)
+OR <- coef(m) %>% exp
+
+# compute confidence intervals (CI)
+CI <- confint(m) %>% exp 
+
+# print out the odds ratios with their confidence intervals
+cbind(OR, CI)
+
+```
+
+<!-- # Interpret the results and compare them to your previously stated hypothesis.-->
+Odds ratios are used to compare the relative odds of the occurrence of the outcome of interest (in this case high alcohol use), given exposure to the variables of interest. 
+
+We can see that exposure to famrel and PstatusT is associated with lower odds of outcome, while exposure to freetime and goout is associated with higher odds high alchocol use. Predictor PStatusT has the widest confidence interval. 
+
+
+
+## Predictive power of the model
+
+According to the previous logistic regression model, only variables __famrel__ and __goout__ had a statistical relationship with high/low alcohol consumption. So here we create a new model, with only those two variables.
+
+```{r}
+m <- glm(high_use ~ famrel + goout, data = alc, family = "binomial")
+summary(m)
+```
+
+Here is a 2x2 cross tabulation of predictions versus the actual values and a graphic visualization of both the actual values and the predictions.
+
+```{r echo=FALSE}
+# predict() the probability of high_use
+probabilities <- predict(m, type = "response")
+
+# add the predicted probabilities to 'alc'
+alc <- mutate(alc, probability = probabilities)
+
+# use the probabilities to make a prediction of high_use
+alc <- mutate(alc, prediction = probability > 0.5)
+
+# see the last ten original classes, predicted probabilities, and class predictions
+# select(alc, famrel, goout, high_use, probability, prediction) %>% tail(10)
+
+# tabulate the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction)
+
+# access dplyr and ggplot2
+library(dplyr); library(ggplot2)
+
+# initialize a plot of 'high_use' versus 'probability' in 'alc'
+g <- ggplot(alc, aes(x = probability , y = high_use, col = prediction))
+
+# define the geom as points and draw the plot
+g  +  geom_point()
+
+# tabulate the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction) %>% prop.table() %>% addmargins()
+```
+
+
+Now we compute the total proportion of inaccurately classified individuals:
+
+```{r echo=FALSE}
+
+# define a loss function (mean prediction error)
+loss_func <- function(class, prob) {
+n_wrong <- abs(class - prob) > 0.5
+mean(n_wrong)
+}
+
+# call loss_func to compute the average number of wrong predictions in the (training) data
+loss_func(class = alc$high_use, prob = alc$probability)
+ 
+```
+
+The training error is only 24.35%, which is probably in accordance with a simple guessing strategy.
+
+
+
+## Bonus: Cross-validation 
+
+Here is error after a 10-fold cross-validation on my model:
+
+```{r echo=FALSE}
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = m, K = 10)
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+```
+ 
+Error rate is 26.43%, which is slightly higher than in datacamp exercise. The reson for this could be that I have only two predictors in the model. By experimenting with adding more predictors, maybe the result could be higher.
+
+
+ 
+
+
+
+ 
+
+
+
+
