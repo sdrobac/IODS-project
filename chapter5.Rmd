@@ -1,0 +1,146 @@
+# Week 5 - Dimensionality reduction techniques
+
+```{r}
+# loading the data
+human <- read.csv("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human2.txt", header = TRUE)
+dim(human)
+
+```
+
+<!-- Show a graphical overview of the data and show summaries of the variables in the data. Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. (0-2 points) -->
+
+## Data overview
+
+
+First, let's have a look at the data. Decription of the data variables is available [here](https://raw.githubusercontent.com/TuomoNieminen/Helsinki-Open-Data-Science/master/datasets/human_meta.txt).
+
+```{r}
+library(corrplot)
+library(GGally)
+# visualize the 'human_' variables
+ggpairs(human)
+
+# compute the correlation matrix and visualize it with corrplot
+corrplot(cor(human), method="circle", type = "upper", cl.pos = "b", tl.pos = "d", tl.cex = 0.6)
+
+summary(human)
+
+```
+
+The largest negative negative correlation (big dark red circle in corrplot) is between _Life.Exp_ and _Mat.Mor_ (-0.857). Also, there is strong negative correlation between: _Edu.Exp_ and _Mat.Mor_, _Edu.Exp_ and _Ado.Birth_, _Life.Exp_ and _Ado.Birth_, and _Edu2Fm_ and _Mat.Mor_. Strong positive correlation is between _Edu.Exp_ and _Life.Exp_ and _Mat.Mor_ and _Ado.Birth_.
+
+
+It is also important to notice that variable GNI has huge variance (min. 581, max. 123124), a lot bigger than other variables.
+
+
+<!-- Perform principal component analysis (PCA) on the not standardized human data. Show the variability captured by the principal components. Draw a biplot displaying the observations by the first two principal components (PC1 coordinate in x-axis, PC2 coordinate in y-axis), along with arrows representing the original variables. (0-2 points) -->
+
+## Principal component analysis (PCA) on the not standardized human data
+
+
+Now we will perform principal component analysis (PCA) on the not standardized human data. 
+
+```{r}
+pca_human <- prcomp(human)
+pca_human
+```
+There are 8 principal componenets. 
+
+```{r}
+library(dplyr)
+s <- summary(pca_human)
+s
+
+# rounded percetanges of variance captured by each PC
+pca_pr <- round(100*s$importance[2, ], digits = 1)
+
+# print out the percentages of variance
+pca_pr
+
+# create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+
+# draw a biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
+```
+
+When we round percetanges of variance captured by each PC, we get that the PC1 holds all the variance (PC1 is 100%). So, basicaly, we get just one dimension. Since the data is not standardized, PCA finds that variable _GNI_, which has the largest variance, is the most important. Everything else is grouped together, there are no angles between arrows (or arrows whatsoever). The _GNI_ arrow is the longest, because of high standard deviation of GNI.
+
+This graph doesn't tell us anything about the data, execpt the fact that _GNI_ has very large variance in comparison to other variables.
+
+
+
+
+
+
+<!-- Standardize the variables in the human data and repeat the above analysis. Interpret the results of both analysis (with and without standardizing). Are the results different? Why or why not? Include captions (brief descriptions) in your plots where you describe the results by using not just your variable names, but the actual phenomenons they relate to. (0-4 points) -->
+
+## PCA on the standardized human data
+
+Now we will standardize data and then repeat the previous step.
+
+
+```{r}
+# standardize the variables
+human_std <- scale(human)
+
+# print out summaries of the standardized variables
+summary(human_std)
+
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human_std)
+pca_human
+
+
+s <- summary(pca_human)
+s
+
+# rounded percetanges of variance captured by each PC
+pca_pr <- round(100*s$importance[2, ], digits = 1)
+
+# print out the percentages of variance
+pca_pr
+
+# create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+
+```
+
+
+
+
+This time the variance is better distributed along dimensions of principle components. The first one (PC1) shows the max amount of variance between the features (53.6%), the next one (PC2) shows the max variability. So now again we will have a look at biplot that displays the observations by this first two principal components (PC1 coordinate in x-axis, PC2 coordinate in y-axis), along with arrows representing the original variables.
+
+```{r}
+
+# draw a biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
+```
+
+
+In the biplot, the angle between the arrows can be interpreted as the correlation between the variables. We can see that for example the angle between Labo.FM and Abo.Birth is almost 90 degrees, which means that there is almost no correlation between the variables (Corr 0.12).
+
+
+Since arrows of variables Mat.Mor and Ado.Birth are almost parallel, that shows that there is correlation between them. Similary, Life.Exp, GNI and Edu.Exp are also almost parallel so there is strong correlation between them. All of them are almost parralel with PC1 so they are part of this dimension. Similarly, Labo.FM and Parli.F belong to PC2 dimension.
+
+
+## Personal interpretations 
+
+<!-- Personal interpretations of the first two principal component dimensions based on the biplot drawn after PCA on the standardized human data.  -->
+
+
+To me, the biplot clearly shows relationships between variables and how they group together.
+
+If we look the dimension PC1 we can see two groups of variables. On the one side, we have strongly positivly correlated _Maternal mortality ratio_ and _Adolescent birth rate_ and on the other side there are (also between them strongly correlated): _Gross National Income per capita_, _Life expectancy at birth_ and _Expected years of schooling_. Since these two gropus are on oposite sides of PC1, they are strongly negatively correlated.
+
+On the other hand, the dimension PC2 shows positive correlation between _Percetange of female representatives in parliament_ and _Ratio of proportion of females/males in the labour force_. This group is independant (not correlated) with the groups on PC1.
+
+
+## Tea dataset 
+
+... didn't have time to complete the chapter...
+
