@@ -25,7 +25,7 @@ summary(BPRS)
 summary(RATS)
 
 
-# TODO create some brief summaries of the variables, so that you understand the point of the wide form data.
+# create some brief summaries of the variables, so that you understand the point of the wide form data.
 
 # 2. Convert the categorical variables of both data sets to factors. (1 point)
 # Access the packages dplyr and tidyr
