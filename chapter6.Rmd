@@ -2,7 +2,7 @@
 
 This week we are working on analysis of two datasets: __BPRS__ and __RATS__.
 
-__BPRS__ dataset contains psychiatric rating scale (BPRS) of 40 male subjects, divided in two categories, that was measured before treatment (week 0) and during 8 week period. The measure is constructed of various psychiatric symptoms measured on scale from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia.
+__BPRS__ dataset contains psychiatric rating scale (BPRS) of 40 male subjects, divided in two treatement categories, that was measured before treatment (week 0) and during 8 week period. The measure is constructed of various psychiatric symptoms measured on scale from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia.
 
 
 __RATS__ dataset contains data from a study that meassured how rat's body weight changes over time, being on a special diet. There were 3 different groups of rats, each one was on a different diet during a 9 week period.
@@ -12,7 +12,7 @@ This week is based on analysis examples from the Chapters 8 and 9 of [MABS](http
 
 ## PART 1 - Chapter 8 analysis on RATS data
 
-Both datasets were originally in a wide form, but in the data wrangling part we transformed it to a long form.
+Both datasets were originally in a wide form, but in the data wrangling part we transformed it to a long form. Here we see long form of the RATS dataset, on which we will perform analysis.
 
 ```{r}
 library(tidyr); library(dplyr); library(ggplot2)
@@ -29,6 +29,7 @@ tail(RATSL)
 
 ### Figure 1
 
+This figure shows the data in graphical format. There are 3 groups of rats, divided by their diet. On the graphs wee see how their weight changed during the duration of the experiment.
 ```{r}
 p1 <- ggplot(RATSL, aes(x = Time, y = Weight,  col = ID)) 
 p2 <- p1 + geom_line(aes(linetype = Group))
@@ -42,6 +43,13 @@ p6
 
 
 ### Figure 2
+
+Now we calculate standardized values of each observation in order to see the tracking phenomenon (rats who start with higher weight tend to have heigher weight throughout the study).
+
+Standardization is done by subtracting the relevant occasion mean from the original observation and then dividing by the corresponding visit standard deviation.
+
+
+
 
 ```{r}
 # Standardise the Weight
@@ -69,6 +77,11 @@ p6
 
 ### Figure 3
 
+
+In order to better represent graphically large number of observations, it is useful to show the standard error of mean profiles for each group.
+
+It seems that Group 2 had the highest weight gain over the time, while Group 1 had the slowest.
+
 ```{r}
 # Number of weeks, baseline (week 0) included:
 n <- RATSL$Time %>% unique() %>% length()
@@ -90,17 +103,13 @@ p6 <- p5 + theme(legend.position = c(0.9,0.4))
 p7 <- p6 + scale_y_continuous(name = "mean(rats) +/- se(rats)")
 p7
 
-# p1 <- ggplot(BPRSS, aes(x = week, y = mean, linetype = treatment, shape = treatment))
-# p2 <- p1 + geom_line() + scale_linetype_manual(values = c(1,2))
-# p3 <- p2 + geom_point(size=3) + scale_shape_manual(values = c(1,2))
-# p4 <- p3 + geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3)
-# p5 <- p4 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-# p6 <- p5 + theme(legend.position = c(0.8,0.8))
-# p7 <- p6 + scale_y_continuous(name = "mean(bprs) +/- se(bprs)")
-# p7
+
 ```
 
 ### Figure 4
+
+Now we will check box plots, first for all measurments over the time. We can see that there are outliers in almost every measurment.
+
 ```{r}
 p1 <- ggplot(RATSL, aes(x = factor(Time), y = Weight, fill = Group))
 p2 <- p1 + geom_boxplot(position = position_dodge(width = 0.9))
@@ -114,6 +123,9 @@ p5
 ```
 
 ### Figure 5
+
+In order to better understand changes between the groups, we will summarize measurments for each group over the period of time. However, we see that there is one outlier in each group that could bias the conclusions from further comparisons of the groups.
+
 ```{r}
 # Make a summary data of the post treatment weeks (1-8)
 RATSL8S <- RATSL %>%
@@ -129,7 +141,12 @@ p4 <- p3 + stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill =
 p5 <- p4 + scale_y_continuous(name = "mean(Weight), WD 8 - 64")
 p5
 ```
+
+
 ### Figure 6
+
+In this step we remove the outliers from the data and create box plots again. Now we can see that the Group 2 has the highest relative mean weight, and Group 3 the lowest. 
+
 ```{r}
 # Remove the outlier:
 RATSL8S1 <- RATSL8S %>%
@@ -149,6 +166,7 @@ Can't do the t-test because there are 3 group means (t-test is ok only when ther
 
 ### Table 2
 
+Now we add the baseline from the original data as a new variable to the summary data and fit the linear model with the mean as the response.  
 ```{r}
 # Add the baseline from the original data as a new variable to the summary data:
 RATS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", header = T)
@@ -159,8 +177,9 @@ fit <- lm(mean ~ baseline + Group, data = RATSL8S2)
 summary(fit)
 anova(fit)
 ```
+We can see that the baseline weight is strongly related to the weight taken in the end of the study.
 
-  
+
 
 ## PART 2 - Chapter 9 analysis on BPRS data
 
@@ -192,6 +211,8 @@ head(BPRSL); tail(BPRSL)
 
 ### Figure 1
 
+This graph shows how the BPRS measures change over time for each treatement category. I guess this isn't the best graph for this data, it is really hard to notice anything useful.
+
 ```{r, echo=TRUE}
 p1 <- ggplot(BPRSL, aes(x = week, y = bprs, group = subject))
 p2 <- p1 + geom_text(aes(label = treatment))
@@ -201,7 +222,11 @@ p5 <- p4 + theme_bw()
 p6 <- p5 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 p6
 ```
+
 ### Table 3
+
+Here we try to fit a multiple linear regression model with bprs as response and week and treatment as explanatory variables.
+This is not a good model for this dataset, because it assumes independance of the repeated measres of BPRS, which is not the case.
 
 ```{r, echo=TRUE}
 BPRS_reg <- lm(bprs ~ week + treatment, data = BPRSL)
@@ -210,6 +235,8 @@ summary(BPRS_reg)
 ```
 
 ### Figure 2
+
+Now we plot graphs that visully better represent the data. There are 2 treatement groups and wee can see how the individual measures of BPRS change over time.
 
 ```{r, echo=TRUE}
 p1 <- ggplot(BPRSL, aes(x = week, y = bprs, linetype = subject))
@@ -223,11 +250,16 @@ p6
 
 ### Figure 3
 
+Pairs graph clearly shows clustering of the data based on treatement. There are also noticable outliers in many week/treatement pairs (upper right corners).
+
 ```{r, echo=TRUE, fig.width=10, fig.height=10}
 pairs(BPRS, cex = 0.7)
 ```
 
 ### Table 4
+
+Random intercept model would suit this dataset better than the lm. 
+
 ```{r, echo=TRUE}
 # install.packages("lme4")
 library("lme4")
