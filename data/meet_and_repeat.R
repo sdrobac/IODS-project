@@ -81,3 +81,6 @@ glimpse(RATS)
 glimpse(RATSL)
 
 ## Similarly, WD columns (WD1, WD8, ...) are now in one column called WD and data has been shifted from columns to rows
+
+write.table(RATSL, file = "D:/Senka/Work/IODS-project/data/ratsl.txt", row.names=TRUE)
+write.table(BPRSL, file = "D:/Senka/Work/IODS-project/data/bprsl.txt", row.names=TRUE)

@@ -1,0 +1,165 @@
+# Week 6 - Analysis of longitudinal data
+
+This week we are working on analysis of two datasets: __BPRS__ and __RATS__.
+
+__BPRS__ dataset contains psychiatric rating scale (BPRS) of 40 male subjects, divided in two categories, that was measured before treatment (week 0) and during 8 week period. The measure is constructed of various psychiatric symptoms measured on scale from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia.
+
+
+__RATS__ dataset contains data from a study that meassured how rat's body weight changes over time, being on a special diet. There were 3 different groups of rats, each one was on a different diet during a 9 week period.
+
+
+This week is based on analysis examples from the Chapters 8 and 9 of [MABS](https://www.crcpress.com/Multivariate-Analysis-for-the-Behavioral-Sciences-Second-Edition/Vehkalahti-Everitt/p/book/9780815385158), which also has a  [GitHub repository](https://github.com/KimmoVehkalahti/MABS).
+
+## PART 1 - Chapter 8 analysis on RATS data
+
+Both datasets were originally in a wide form, but in the data wrangling part we transformed it to a long form.
+
+```{r}
+library(tidyr); library(dplyr); library(ggplot2)
+
+RATSL <- read.table("D:/Senka/Work/IODS-project/data/ratsl.txt", header = T)
+RATSL$ID <- factor(RATSL$ID)
+RATSL$Group <- factor(RATSL$Group)
+glimpse(RATSL)
+head(RATSL)
+tail(RATSL)
+
+```
+
+
+### Figure 1
+
+```{r}
+p1 <- ggplot(RATSL, aes(x = Time, y = Weight,  col = ID)) 
+p2 <- p1 + geom_line(aes(linetype = Group))
+p3 <- p2 + scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) 
+p4 <- p3 + scale_y_continuous(name = "Weight (grams)") 
+p5 <- p4 + theme_bw() + theme(legend.position = "none") 
+p6 <- p5 + facet_grid(. ~ Group, labeller = label_both)
+p6
+```
+
+
+
+### Figure 2
+
+```{r}
+# Standardise the Weight
+RATSL <- RATSL %>%
+  group_by(WD) %>%
+  mutate(sdweight = (Weight - mean(Weight))/sd(Weight) ) %>%
+  ungroup()
+
+glimpse(RATSL)
+
+
+p1 <- ggplot(RATSL, aes(x = Time, y = sdweight, col = ID)) 
+p2 <- p1 + geom_line(aes(linetype = Group))
+p3 <- p2 + scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) 
+p4 <- p3 + scale_y_continuous(name = "Standardized Weight (grams)") 
+p5 <- p4 + theme_bw() + theme(legend.position = "none") 
+p6 <- p5 + facet_grid(. ~ Group, labeller = label_both)
+p6
+
+```
+
+
+
+
+
+### Figure 3
+
+```{r}
+# Number of weeks, baseline (week 0) included:
+n <- RATSL$Time %>% unique() %>% length()
+# Make a summary data:
+RATSS <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise( mean=mean(Weight), se=sd(Weight)/sqrt(n) ) %>%
+  ungroup()
+glimpse(RATSS)
+
+
+
+p1 <- ggplot(RATSS, aes(x = Time, y = mean, linetype = Group, shape = Group)) 
+p2 <- p1 + geom_line() + scale_linetype_manual(values = c(1,2,3))
+p3 <- p2 + geom_point(size=3) + scale_shape_manual(values = c(1,2,3))
+p4 <- p3 + geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3)
+p5 <- p4 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p6 <- p5 + theme(legend.position = c(0.9,0.4))
+p7 <- p6 + scale_y_continuous(name = "mean(rats) +/- se(rats)")
+p7
+
+# p1 <- ggplot(BPRSS, aes(x = week, y = mean, linetype = treatment, shape = treatment))
+# p2 <- p1 + geom_line() + scale_linetype_manual(values = c(1,2))
+# p3 <- p2 + geom_point(size=3) + scale_shape_manual(values = c(1,2))
+# p4 <- p3 + geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3)
+# p5 <- p4 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+# p6 <- p5 + theme(legend.position = c(0.8,0.8))
+# p7 <- p6 + scale_y_continuous(name = "mean(bprs) +/- se(bprs)")
+# p7
+```
+
+### Figure 4
+```{r}
+p1 <- ggplot(RATSL, aes(x = factor(Time), y = Weight, fill = Group))
+p2 <- p1 + geom_boxplot(position = position_dodge(width = 0.9))
+p3 <- p2 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p4 <- p3 + theme(legend.position = c(0.9,0.4))
+p5 <- p4 + scale_x_discrete(name = "week")
+# Black & White version:
+#p6 <- p5 + scale_fill_grey(start = 0.5, end = 1)
+p5
+
+```
+
+### Figure 5
+```{r}
+# Make a summary data of the post treatment weeks (1-8)
+RATSL8S <- RATSL %>%
+  filter(Time > 0) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+glimpse(RATSL8S)
+p1 <- ggplot(RATSL8S, aes(x = Group, y = mean))
+p2 <- p1 + geom_boxplot()
+p3 <- p2 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p4 <- p3 + stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white")
+p5 <- p4 + scale_y_continuous(name = "mean(Weight), WD 8 - 64")
+p5
+```
+### Figure 6
+```{r}
+# Remove the outlier:
+RATSL8S1 <- RATSL8S %>%
+  filter((Group == 1 & mean > 250) | (Group == 2 & mean < 560) | (Group == 3 & mean > 520)) 
+glimpse(RATSL8S1)
+p1 <- ggplot(RATSL8S1, aes(x = Group, y = mean))
+p2 <- p1 + geom_boxplot()
+p3 <- p2 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+p4 <- p3 + stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white")
+p5 <- p4 + scale_y_continuous(name = "mean(Weight), WD 8 - 64")
+p5
+```
+
+## Table 1
+Can't do the t-test because there are 3 group means (t-test is ok only when there are 2 group means).
+
+
+## Table 2
+
+```{r}
+# Add the baseline from the original data as a new variable to the summary data:
+RATS <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", header = T)
+baseline <- RATS$WD1
+RATSL8S2 <- RATSL8S %>% mutate(baseline)
+# Fit the ANCOVA model and see the results:
+fit <- lm(mean ~ baseline + Group, data = RATSL8S2)
+summary(fit)
+anova(fit)
+```
+
+  
+
+## PART 2 - Chapter 9 analysis on BPRS data
